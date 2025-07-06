@@ -24,7 +24,25 @@ Một hệ thống bảo mật cho ứng dụng nhắn tin văn bản, nơi nộ
 - **Handshake**: Xác thực P2P qua Socket TCP
 
 ## 📂 Cấu trúc Thư mục
-
+```
+btlN/
+├── client_app.py          # Flask app cho client
+├── server_app.py          # Flask app cho server
+├── crypto_utils.py        # Thư viện mã hóa (DES, RSA, SHA-256)
+├── socket_client.py       # Client socket để gửi tin nhắn
+├── socket_server.py       # Server socket để nhận tin nhắn
+├── run_both.py           # Script chạy cả client và server
+├── requirements.txt      # Dependencies
+├── templates/            # HTML templates
+│   ├── client_base.html
+│   ├── client_index.html
+│   ├── client_send.html
+│   ├── client_receive.html
+│   ├── server_base.html
+│   ├── server_index.html
+│   └── server_messages.html
+└── static/              # CSS, JS files
+```
 
 ## 🚀 Cài đặt
 
