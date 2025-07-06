@@ -1,0 +1,320 @@
+{% extends "server_base.html" %}
+
+{% block title %}Server Logs - Spotify Cloud Server{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Header -->
+    <div class="col-12 mb-4">
+        <div class="card bg-gradient-warning text-dark">
+            <div class="card-body text-center py-4">
+                <h2 class="mb-3">
+                    <i class="fas fa-list me-3"></i>
+                    Server Logs
+                </h2>
+                <p class="lead mb-0">
+                    Theo dõi hoạt động và logs của server socket
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Log Controls -->
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-cogs me-2"></i>
+                    Điều khiển Logs
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-primary" onclick="refreshLogs()">
+                                <i class="fas fa-sync me-1"></i>Làm mới
+                            </button>
+                            <button class="btn btn-success" onclick="clearLogs()">
+                                <i class="fas fa-trash me-1"></i>Xóa logs
+                            </button>
+                            <button class="btn btn-info" onclick="exportLogs()">
+                                <i class="fas fa-download me-1"></i>Xuất logs
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="autoRefresh" checked>
+                            <label class="form-check-label" for="autoRefresh">
+                                Tự động làm mới (5 giây)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Log Statistics -->
+    <div class="col-12 mb-4">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body text-center">
+                        <i class="fas fa-list fa-2x mb-2"></i>
+                        <h4 id="total-logs">0</h4>
+                        <small>Tổng số logs</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center">
+                        <i class="fas fa-check-circle fa-2x mb-2"></i>
+                        <h4 id="success-logs">0</h4>
+                        <small>Thành công</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-dark">
+                    <div class="card-body text-center">
+                        <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                        <h4 id="warning-logs">0</h4>
+                        <small>Cảnh báo</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-danger text-white">
+                    <div class="card-body text-center">
+                        <i class="fas fa-times-circle fa-2x mb-2"></i>
+                        <h4 id="error-logs">0</h4>
+                        <small>Lỗi</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Log List -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-list-alt me-2"></i>
+                    Danh sách Logs
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="logs-container">
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-spinner fa-spin fa-3x mb-3 d-block"></i>
+                        <h5>Đang tải logs...</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let autoRefreshInterval;
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadLogs();
+    startAutoRefresh();
+});
+
+function loadLogs() {
+    fetch('/api/server-logs')
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById('logs-container');
+            
+            if (data.logs && data.logs.length > 0) {
+                // Update statistics
+                updateLogStatistics(data.logs);
+                
+                // Display logs
+                container.innerHTML = data.logs.map(log => `
+                    <div class="log-entry mb-3 p-3 border rounded ${getLogClass(log.type)}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="fas ${getLogIcon(log.type)} me-2"></i>
+                                    <strong>${log.type.toUpperCase()}</strong>
+                                    <span class="badge bg-secondary ms-2">${log.timestamp}</span>
+                                </div>
+                                <p class="mb-1">${log.message}</p>
+                                ${log.details ? `<small class="text-muted">${log.details}</small>` : ''}
+                            </div>
+                            <div class="ms-3">
+                                <button class="btn btn-sm btn-outline-secondary" onclick="copyLog('${log.message}')" title="Copy">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = `
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-list fa-3x mb-3 d-block"></i>
+                        <h5>Không có logs</h5>
+                        <p class="text-muted">Chưa có hoạt động nào được ghi lại</p>
+                    </div>
+                `;
+                updateLogStatistics([]);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('logs-container').innerHTML = `
+                <div class="text-center text-danger py-5">
+                    <i class="fas fa-exclamation-triangle fa-3x mb-3 d-block"></i>
+                    <h5>Lỗi khi tải logs</h5>
+                    <p class="text-muted">Không thể kết nối đến server</p>
+                </div>
+            `;
+        });
+}
+
+function updateLogStatistics(logs) {
+    const total = logs.length;
+    const success = logs.filter(log => log.type === 'success').length;
+    const warning = logs.filter(log => log.type === 'warning').length;
+    const error = logs.filter(log => log.type === 'error').length;
+    
+    document.getElementById('total-logs').textContent = total;
+    document.getElementById('success-logs').textContent = success;
+    document.getElementById('warning-logs').textContent = warning;
+    document.getElementById('error-logs').textContent = error;
+}
+
+function getLogClass(type) {
+    const classes = {
+        'success': 'border-success bg-light',
+        'warning': 'border-warning bg-light',
+        'error': 'border-danger bg-light',
+        'info': 'border-info bg-light'
+    };
+    return classes[type] || 'border-secondary bg-light';
+}
+
+function getLogIcon(type) {
+    const icons = {
+        'success': 'fa-check-circle text-success',
+        'warning': 'fa-exclamation-triangle text-warning',
+        'error': 'fa-times-circle text-danger',
+        'info': 'fa-info-circle text-info'
+    };
+    return icons[type] || 'fa-circle text-secondary';
+}
+
+function refreshLogs() {
+    loadLogs();
+}
+
+function clearLogs() {
+    if (confirm('Bạn có chắc muốn xóa tất cả logs?\n\nHành động này không thể hoàn tác!')) {
+        fetch('/api/clear-logs', {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('success', data.message);
+                loadLogs();
+            } else {
+                showAlert('danger', data.message);
+            }
+        })
+        .catch(error => {
+            showAlert('danger', 'Lỗi khi xóa logs');
+        });
+    }
+}
+
+function exportLogs() {
+    fetch('/api/server-logs')
+        .then(response => response.json())
+        .then(data => {
+            if (data.logs && data.logs.length > 0) {
+                const logText = data.logs.map(log => 
+                    `[${log.timestamp}] ${log.type.toUpperCase()}: ${log.message}`
+                ).join('\n');
+                
+                const blob = new Blob([logText], { type: 'text/plain' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `server-logs-${new Date().toISOString().split('T')[0]}.txt`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+                
+                showAlert('success', 'Logs đã được xuất thành công');
+            } else {
+                showAlert('warning', 'Không có logs để xuất');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('danger', 'Lỗi khi xuất logs');
+        });
+}
+
+function copyLog(message) {
+    navigator.clipboard.writeText(message).then(() => {
+        showAlert('success', 'Đã copy log vào clipboard');
+    }).catch(() => {
+        showAlert('danger', 'Không thể copy log');
+    });
+}
+
+function startAutoRefresh() {
+    const autoRefreshCheckbox = document.getElementById('autoRefresh');
+    
+    autoRefreshCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            startAutoRefresh();
+        } else {
+            stopAutoRefresh();
+        }
+    });
+    
+    if (autoRefreshCheckbox.checked) {
+        autoRefreshInterval = setInterval(loadLogs, 5000);
+    }
+}
+
+function stopAutoRefresh() {
+    if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+        autoRefreshInterval = null;
+    }
+}
+
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const container = document.querySelector('main');
+    container.insertBefore(alertDiv, container.firstChild);
+    
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 5000);
+}
+</script>
+{% endblock %} 

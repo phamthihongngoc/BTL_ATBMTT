@@ -1,0 +1,26 @@
+<svg width="80" height="92" viewBox="0 0 80 92" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Define the gradient -->
+    <defs>
+        <linearGradient id="shieldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#1E88E5;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#0D47A1;stop-opacity:1" />
+        </linearGradient>
+        <filter id="dropShadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur in="SourceAlpha" stdDeviation="1"/>
+            <feOffset dx="1" dy="1" result="offsetblur"/>
+            <feComponentTransfer>
+                <feFuncA type="linear" slope="0.5"/>
+            </feComponentTransfer>
+            <feMerge> 
+                <feMergeNode/>
+                <feMergeNode in="SourceGraphic"/> 
+            </feMerge>
+        </filter>
+    </defs>
+    
+    <!-- Shield Shape with Gradient -->
+    <path d="M40 0L80 15V45C80 75 40 92 40 92C40 92 0 75 0 45V15L40 0Z" fill="url(#shieldGradient)"/>
+    
+    <!-- Letter N with shadow -->
+    <path d="M25 65V27H35L55 54V27H65V65H55L35 38V65H25Z" fill="white" filter="url(#dropShadow)"/>
+</svg> 

@@ -1,0 +1,118 @@
+{% extends "client_base.html" %}
+
+{% block title %}Gửi Tin nhắn - Secure Message Client{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">
+                        <i class="fas fa-paper-plane"></i> 
+                        Gửi Tin nhắn Bảo mật
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <form id="message-form">
+                        <div class="mb-3">
+                            <label for="recipient" class="form-label">
+                                <i class="fas fa-user"></i> Người nhận
+                            </label>
+                            <input type="text" class="form-control" id="recipient" name="recipient" 
+                                   value="Server" placeholder="Nhập ID người nhận">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="message" class="form-label">
+                                <i class="fas fa-comment"></i> Nội dung tin nhắn
+                            </label>
+                            <textarea class="form-control" id="message" name="message" rows="6" 
+                                      placeholder="Nhập nội dung tin nhắn cần gửi..." required></textarea>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg" id="send-btn">
+                                <i class="fas fa-paper-plane"></i> Gửi Tin nhắn
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <hr class="my-4">
+                    
+                    <div id="result-area" style="display: none;">
+                        <h5><i class="fas fa-info-circle"></i> Kết quả</h5>
+                        <div id="result-content"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const form = document.getElementById("message-form");
+    
+    form.addEventListener("submit", function(e) {
+        e.preventDefault();
+        sendMessage();
+    });
+});
+
+function sendMessage() {
+    const message = document.getElementById("message").value.trim();
+    const recipient = document.getElementById("recipient").value.trim() || "Server";
+    
+    if (!message) {
+        alert("Vui lòng nhập nội dung tin nhắn");
+        return;
+    }
+    
+    const sendBtn = document.getElementById("send-btn");
+    const originalText = sendBtn.innerHTML;
+    sendBtn.disabled = true;
+    sendBtn.innerHTML = "<i class=\"fas fa-spinner fa-spin\"></i> Đang gửi...";
+    
+    fetch("/api/send-message", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            message: message,
+            recipient_id: recipient
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        sendBtn.disabled = false;
+        sendBtn.innerHTML = originalText;
+        
+        const resultArea = document.getElementById("result-area");
+        const resultContent = document.getElementById("result-content");
+        
+        if (data.success) {
+            resultContent.className = "alert alert-success";
+            resultContent.innerHTML = "<i class=\"fas fa-check-circle\"></i> " + data.message;
+        } else {
+            resultContent.className = "alert alert-danger";
+            resultContent.innerHTML = "<i class=\"fas fa-exclamation-triangle\"></i> " + data.message;
+        }
+        
+        resultArea.style.display = "block";
+        resultArea.scrollIntoView({ behavior: "smooth" });
+    })
+    .catch(error => {
+        sendBtn.disabled = false;
+        sendBtn.innerHTML = originalText;
+        
+        const resultArea = document.getElementById("result-area");
+        const resultContent = document.getElementById("result-content");
+        resultContent.className = "alert alert-danger";
+        resultContent.innerHTML = "<i class=\"fas fa-times-circle\"></i> Lỗi kết nối: " + error.message;
+        resultArea.style.display = "block";
+    });
+}
+</script>
+{% endblock %}

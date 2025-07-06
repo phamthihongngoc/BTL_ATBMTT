@@ -1,0 +1,256 @@
+{% extends "server_base.html" %}
+
+{% block title %}Secure Message Server - Trang chủ{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="mb-0">
+                        <i class="fas fa-server"></i> 
+                        Secure Message Server
+                    </h2>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="server-status-card">
+                                <h4><i class="fas fa-cogs"></i> Trạng thái Server</h4>
+                                <div id="server-status" class="alert alert-info">
+                                    <i class="fas fa-spinner fa-spin"></i> Đang kiểm tra trạng thái...
+                                </div>
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-success" onclick="startServer()" id="start-btn">
+                                        <i class="fas fa-play"></i> Khởi động Server
+                                    </button>
+                                    <button class="btn btn-danger" onclick="stopServer()" id="stop-btn">
+                                        <i class="fas fa-stop"></i> Dừng Server
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="connection-info-card">
+                                <h4><i class="fas fa-network-wired"></i> Thông tin Kết nối</h4>
+                                <div class="info-item">
+                                    <strong>Địa chỉ:</strong> localhost:8888
+                                </div>
+                                <div class="info-item">
+                                    <strong>Giao thức:</strong> Socket TCP
+                                </div>
+                                <div class="info-item">
+                                    <strong>Bảo mật:</strong> DES + RSA + SHA-256
+                                </div>
+                                <div class="info-item">
+                                    <strong>Clients đang kết nối:</strong>
+                                    <span id="connected-clients">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h4><i class="fas fa-shield-alt"></i> Tính năng Bảo mật</h4>
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="security-feature">
+                                        <i class="fas fa-lock"></i>
+                                        <h6>Mã hóa DES</h6>
+                                        <small>CFB Mode - 64-bit key</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="security-feature">
+                                        <i class="fas fa-key"></i>
+                                        <h6>RSA 2048-bit</h6>
+                                        <small>OAEP + SHA-256</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="security-feature">
+                                        <i class="fas fa-hashtag"></i>
+                                        <h6>SHA-256</h6>
+                                        <small>Kiểm tra tính toàn vẹn</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="security-feature">
+                                        <i class="fas fa-handshake"></i>
+                                        <h6>Handshake</h6>
+                                        <small>Xác thực P2P</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.server-status-card, .connection-info-card {
+    padding: 1.5rem;
+    border: 1px solid #e9ecef;
+    border-radius: 10px;
+    height: 100%;
+}
+
+.info-item {
+    margin-bottom: 0.5rem;
+    padding: 0.5rem;
+    background: #f8f9fa;
+    border-radius: 5px;
+}
+
+.security-feature {
+    text-align: center;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.security-feature i {
+    font-size: 2rem;
+    color: #28a745;
+    margin-bottom: 0.5rem;
+}
+
+.security-feature h6 {
+    margin: 0.5rem 0 0.25rem 0;
+    font-weight: bold;
+}
+
+.security-feature small {
+    color: #6c757d;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    checkServerStatus();
+    checkConnectedClients();
+    
+    // Kiểm tra trạng thái mỗi 3 giây
+    setInterval(function() {
+        checkServerStatus();
+        checkConnectedClients();
+    }, 3000);
+});
+
+function checkServerStatus() {
+    fetch('/api/server-status')
+        .then(response => response.json())
+        .then(data => {
+            const statusDiv = document.getElementById('server-status');
+            const startBtn = document.getElementById('start-btn');
+            const stopBtn = document.getElementById('stop-btn');
+            
+            if (data.running) {
+                statusDiv.className = 'alert alert-success';
+                statusDiv.innerHTML = '<i class="fas fa-check-circle"></i> Server đang chạy và sẵn sàng nhận tin nhắn';
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+            } else {
+                statusDiv.className = 'alert alert-warning';
+                statusDiv.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Server chưa được khởi động';
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+            }
+        })
+        .catch(error => {
+            const statusDiv = document.getElementById('server-status');
+            statusDiv.className = 'alert alert-danger';
+            statusDiv.innerHTML = '<i class="fas fa-times-circle"></i> Không thể kết nối đến server';
+        });
+}
+
+function checkConnectedClients() {
+    fetch('/api/connected-clients')
+        .then(response => response.json())
+        .then(data => {
+            const clientCount = data.clients ? data.clients.length : 0;
+            document.getElementById('connected-clients').textContent = clientCount;
+        })
+        .catch(error => {
+            document.getElementById('connected-clients').textContent = '0';
+        });
+}
+
+function startServer() {
+    const startBtn = document.getElementById('start-btn');
+    startBtn.disabled = true;
+    startBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang khởi động...';
+    
+    fetch('/api/start-server', {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', data.message);
+            checkServerStatus();
+        } else {
+            showAlert('danger', data.message);
+        }
+    })
+    .catch(error => {
+        showAlert('danger', 'Lỗi khi khởi động server: ' + error.message);
+    })
+    .finally(() => {
+        startBtn.disabled = false;
+        startBtn.innerHTML = '<i class="fas fa-play"></i> Khởi động Server';
+    });
+}
+
+function stopServer() {
+    const stopBtn = document.getElementById('stop-btn');
+    stopBtn.disabled = true;
+    stopBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang dừng...';
+    
+    fetch('/api/stop-server', {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', data.message);
+            checkServerStatus();
+        } else {
+            showAlert('danger', data.message);
+        }
+    })
+    .catch(error => {
+        showAlert('danger', 'Lỗi khi dừng server: ' + error.message);
+    })
+    .finally(() => {
+        stopBtn.disabled = false;
+        stopBtn.innerHTML = '<i class="fas fa-stop"></i> Dừng Server';
+    });
+}
+
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const container = document.querySelector('.card-body');
+    container.insertBefore(alertDiv, container.firstChild);
+    
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 5000);
+}
+</script>
+{% endblock %} 

@@ -1,0 +1,113 @@
+{% extends "client_base.html" %}
+
+{% block title %}Nhận Tin nhắn - Secure Message Client{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h3 class="mb-0">
+                        <i class="fas fa-inbox"></i> 
+                        Nhận Tin nhắn Bảo mật
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <p class="text-muted">Nhấn nút bên dưới để nhận và giải mã tin nhắn từ server</p>
+                        <button class="btn btn-success btn-lg" id="receive-btn" onclick="receiveMessage()">
+                            <i class="fas fa-download"></i> Nhận Tin nhắn
+                        </button>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <div id="result-area" style="display: none;">
+                        <h5><i class="fas fa-info-circle"></i> Kết quả</h5>
+                        <div id="result-content"></div>
+                    </div>
+                    
+                    <div id="message-area" style="display: none;">
+                        <h5><i class="fas fa-envelope"></i> Tin nhắn đã nhận</h5>
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <strong><i class="fas fa-user"></i> Người gửi:</strong>
+                                        <p id="sender-info" class="text-muted"></p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <strong><i class="fas fa-clock"></i> Thời gian:</strong>
+                                        <p id="timestamp-info" class="text-muted"></p>
+                                    </div>
+                                </div>
+                                <hr>
+                                <strong><i class="fas fa-comment"></i> Nội dung:</strong>
+                                <div class="alert alert-info" id="message-content"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function receiveMessage() {
+    const receiveBtn = document.getElementById("receive-btn");
+    const originalText = receiveBtn.innerHTML;
+    receiveBtn.disabled = true;
+    receiveBtn.innerHTML = "<i class=\"fas fa-spinner fa-spin\"></i> Đang nhận...";
+    
+    // Hide previous results
+    document.getElementById("result-area").style.display = "none";
+    document.getElementById("message-area").style.display = "none";
+    
+    fetch("/api/receive-message", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        receiveBtn.disabled = false;
+        receiveBtn.innerHTML = originalText;
+        
+        const resultArea = document.getElementById("result-area");
+        const resultContent = document.getElementById("result-content");
+        
+        if (data.success) {
+            resultContent.className = "alert alert-success";
+            resultContent.innerHTML = "<i class=\"fas fa-check-circle\"></i> " + data.message;
+            
+            // Show message details
+            if (data.decrypted_text) {
+                document.getElementById("sender-info").textContent = data.sender_id || "Unknown";
+                document.getElementById("timestamp-info").textContent = new Date().toLocaleString("vi-VN");
+                document.getElementById("message-content").textContent = data.decrypted_text;
+                document.getElementById("message-area").style.display = "block";
+            }
+        } else {
+            resultContent.className = "alert alert-danger";
+            resultContent.innerHTML = "<i class=\"fas fa-exclamation-triangle\"></i> " + data.message;
+        }
+        
+        resultArea.style.display = "block";
+        resultArea.scrollIntoView({ behavior: "smooth" });
+    })
+    .catch(error => {
+        receiveBtn.disabled = false;
+        receiveBtn.innerHTML = originalText;
+        
+        const resultArea = document.getElementById("result-area");
+        const resultContent = document.getElementById("result-content");
+        resultContent.className = "alert alert-danger";
+        resultContent.innerHTML = "<i class=\"fas fa-times-circle\"></i> Lỗi kết nối: " + error.message;
+        resultArea.style.display = "block";
+    });
+}
+</script>
+{% endblock %}

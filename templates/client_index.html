@@ -1,0 +1,169 @@
+{% extends "client_base.html" %}
+
+{% block title %}Secure Message Client - Trang chủ{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="mb-0">
+                        <i class="fas fa-shield-alt"></i> 
+                        Ứng dụng Bảo mật Tin nhắn Văn bản
+                    </h2>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="feature-card">
+                                <div class="feature-icon">
+                                    <i class="fas fa-paper-plane"></i>
+                                </div>
+                                <h4>Gửi Tin nhắn</h4>
+                                <p>Gửi tin nhắn văn bản được mã hóa bằng DES và xác thực bằng RSA</p>
+                                <a href="{{ url_for('send') }}" class="btn btn-primary">
+                                    <i class="fas fa-arrow-right"></i> Gửi tin nhắn
+                                </a>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="feature-card">
+                                <div class="feature-icon">
+                                    <i class="fas fa-inbox"></i>
+                                </div>
+                                <h4>Nhận Tin nhắn</h4>
+                                <p>Nhận và giải mã tin nhắn với kiểm tra tính toàn vẹn</p>
+                                <a href="{{ url_for('receive') }}" class="btn btn-success">
+                                    <i class="fas fa-arrow-right"></i> Nhận tin nhắn
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h4><i class="fas fa-cogs"></i> Trạng thái Hệ thống</h4>
+                            <div id="server-status" class="alert alert-info">
+                                <i class="fas fa-spinner fa-spin"></i> Đang kiểm tra trạng thái server...
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h4><i class="fas fa-shield-alt"></i> Tính năng Bảo mật</h4>
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="security-feature">
+                                        <i class="fas fa-lock"></i>
+                                        <h6>Mã hóa DES</h6>
+                                        <small>CFB Mode</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="security-feature">
+                                        <i class="fas fa-key"></i>
+                                        <h6>RSA 2048-bit</h6>
+                                        <small>OAEP + SHA-256</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="security-feature">
+                                        <i class="fas fa-hashtag"></i>
+                                        <h6>SHA-256</h6>
+                                        <small>Tính toàn vẹn</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="security-feature">
+                                        <i class="fas fa-handshake"></i>
+                                        <h6>Handshake</h6>
+                                        <small>Xác thực P2P</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.feature-card {
+    text-align: center;
+    padding: 2rem;
+    border: 1px solid #e9ecef;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+    transition: transform 0.3s ease;
+}
+
+.feature-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.feature-icon {
+    font-size: 3rem;
+    color: #007bff;
+    margin-bottom: 1rem;
+}
+
+.security-feature {
+    text-align: center;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.security-feature i {
+    font-size: 2rem;
+    color: #28a745;
+    margin-bottom: 0.5rem;
+}
+
+.security-feature h6 {
+    margin: 0.5rem 0 0.25rem 0;
+    font-weight: bold;
+}
+
+.security-feature small {
+    color: #6c757d;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    checkServerStatus();
+    
+    // Kiểm tra trạng thái server mỗi 5 giây
+    setInterval(checkServerStatus, 5000);
+});
+
+function checkServerStatus() {
+    fetch('/api/server-status')
+        .then(response => response.json())
+        .then(data => {
+            const statusDiv = document.getElementById('server-status');
+            if (data.running) {
+                statusDiv.className = 'alert alert-success';
+                statusDiv.innerHTML = '<i class="fas fa-check-circle"></i> Server đang chạy và sẵn sàng nhận tin nhắn';
+            } else {
+                statusDiv.className = 'alert alert-warning';
+                statusDiv.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Server chưa được khởi động. Vui lòng khởi động server trước khi sử dụng.';
+            }
+        })
+        .catch(error => {
+            const statusDiv = document.getElementById('server-status');
+            statusDiv.className = 'alert alert-danger';
+            statusDiv.innerHTML = '<i class="fas fa-times-circle"></i> Không thể kết nối đến server';
+        });
+}
+</script>
+{% endblock %} 

@@ -1,0 +1,215 @@
+{% extends "server_base.html" %}
+
+{% block title %}Tin nhắn - Secure Message Server{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h3 class="mb-0">
+                        <i class="fas fa-envelope"></i> 
+                        Quản lý Tin nhắn
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5><i class="fas fa-users"></i> Clients đang kết nối</h5>
+                            <div id="clients-list" class="list-group">
+                                <div class="text-center text-muted">
+                                    <i class="fas fa-spinner fa-spin"></i> Đang tải...
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h5><i class="fas fa-chart-bar"></i> Thống kê</h5>
+                            <div class="row">
+                                <div class="col-6">
+                                    <div class="stat-card">
+                                        <div class="stat-number" id="total-messages">0</div>
+                                        <div class="stat-label">Tổng tin nhắn</div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="stat-card">
+                                        <div class="stat-number" id="successful-messages">0</div>
+                                        <div class="stat-label">Thành công</div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="stat-card">
+                                        <div class="stat-number" id="failed-messages">0</div>
+                                        <div class="stat-label">Thất bại</div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="stat-card">
+                                        <div class="stat-number" id="active-clients">0</div>
+                                        <div class="stat-label">Clients hoạt động</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h5><i class="fas fa-history"></i> Lịch sử Tin nhắn gần đây</h5>
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th><i class="fas fa-clock"></i> Thời gian</th>
+                                            <th><i class="fas fa-user"></i> Client</th>
+                                            <th><i class="fas fa-comment"></i> Nội dung</th>
+                                            <th><i class="fas fa-check-circle"></i> Trạng thái</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="messages-history">
+                                        <tr>
+                                            <td colspan="4" class="text-center text-muted">
+                                                <i class="fas fa-spinner fa-spin"></i> Đang tải lịch sử...
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.stat-card {
+    text-align: center;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #007bff;
+}
+
+.stat-label {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.client-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+}
+
+.client-info {
+    flex: 1;
+}
+
+.client-status {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+}
+
+.status-online {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-offline {
+    background: #f8d7da;
+    color: #721c24;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    loadClients();
+    loadMessagesHistory();
+    
+    // Cập nhật mỗi 5 giây
+    setInterval(function() {
+        loadClients();
+        loadMessagesHistory();
+    }, 5000);
+});
+
+function loadClients() {
+    fetch('/api/connected-clients')
+        .then(response => response.json())
+        .then(data => {
+            const clientsList = document.getElementById('clients-list');
+            const activeClients = document.getElementById('active-clients');
+            
+            if (data.clients && data.clients.length > 0) {
+                clientsList.innerHTML = data.clients.map(client => `
+                    <div class="client-item">
+                        <div class="client-info">
+                            <strong>${client.id}</strong><br>
+                            <small class="text-muted">${client.address}</small>
+                        </div>
+                        <span class="client-status status-online">Online</span>
+                    </div>
+                `).join('');
+                
+                activeClients.textContent = data.clients.length;
+            } else {
+                clientsList.innerHTML = '<div class="text-center text-muted">Không có client nào đang kết nối</div>';
+                activeClients.textContent = '0';
+            }
+        })
+        .catch(error => {
+            document.getElementById('clients-list').innerHTML = '<div class="text-center text-danger">Lỗi khi tải danh sách clients</div>';
+        });
+}
+
+function loadMessagesHistory() {
+    fetch('/api/messages_history')
+        .then(response => response.json())
+        .then(data => {
+            const messagesHistory = document.getElementById('messages-history');
+            if (data && data.length > 0) {
+                messagesHistory.innerHTML = data.map(msg => `
+                    <tr>
+                        <td>${msg.timestamp || ''}</td>
+                        <td><i class="fas fa-user text-primary"></i> ${msg.sender_id || 'Unknown'}</td>
+                        <td>${msg.decrypted_text || ''}</td>
+                        <td>
+                            <span class="badge bg-success">
+                                <i class="fas fa-check-circle"></i> Thành công
+                            </span>
+                        </td>
+                    </tr>
+                `).join('');
+                document.getElementById('total-messages').textContent = data.length;
+                document.getElementById('successful-messages').textContent = data.length;
+                document.getElementById('failed-messages').textContent = '0';
+            } else {
+                messagesHistory.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Chưa có tin nhắn nào</td></tr>';
+                document.getElementById('total-messages').textContent = '0';
+                document.getElementById('successful-messages').textContent = '0';
+                document.getElementById('failed-messages').textContent = '0';
+            }
+        })
+        .catch(error => {
+            const messagesHistory = document.getElementById('messages-history');
+            messagesHistory.innerHTML = '<tr><td colspan="4" class="text-center text-danger">Lỗi khi tải lịch sử tin nhắn</td></tr>';
+        });
+}
+</script>
+{% endblock %}
